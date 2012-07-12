@@ -1,0 +1,76 @@
+/*
+g++ -msse3 -mfpmath=sse
+
+LICENSE: MIT license
+2010 (c) Ilmari Heikkinen <ilmari.heikkinen@gmail.com>
+
+SSE3 FP vector math structs for C++ with operator overloading.
+
+Uses SSE intrinsics, YMMV.
+Includes float4, double2 and double4.
+
+The API uses big-endian element order.
+Which might bite you when interacting with other SSE code.
+But it makes float4 look like a float[4] in memory, so interacting with
+arrays of floats should be easier.
+
+To demonstrate:
+  float4 v(1,2,3,4); // (float*)&v == {1,2,3,4}
+
+
+Remember to align your vector arrays on 16 bytes with e.g.
+  float4 *ptr;
+  ptr = (float4*)memalign(16, sz*sizeof(float4));
+  or
+  posix_memalign(&ptr, 16, sz*sizeof(float4));
+
+
+float4 API:
+  constructors:
+    float4() = (0,0,0,0)
+    float4(__m128)   = __m128
+    float4(float4 v) = v
+    float4(float f)  = (f,f,f,f)
+    float4(x,y,z,w)  = (x,y,z,w)
+    float4(float *v) = (v[0], v[1], v[2], v[3])
+
+  methods:
+    v.shuffle(0,1,2,3) = (v.x, v.y, v.z, v.w)
+    v.shuffle(float4 u,0,1,2,3) = (v.x, v.y, u.z, u.w)
+    v.hadd(float4 u) = (v.x+v.y, v.z+v.w, u.x+u.y, u.z+u.w)
+    v.hsub(float4 u) = (v.x-v.y, v.z-v.w, u.x-u.y, u.z-u.w)
+    v.sum() = v.x + v.y + v.z + v.w
+    v.dot(float4 u) = (v * u).sum()
+    v.recip() = (1/v.x, 1/v.y, 1/v.z, 1/v.w)
+    v.sqrt()  = (sqrt(v.x), sqrt(v.y), sqrt(v.z), sqrt(v.w))
+    v.rsqrt() = v.sqrt().recip() using the _mm_rsqrt_ps op
+    v & u = zipWith & v u = (v.x&u.x, v.y&u.y, v.z&u.z, v.w&u.w)
+    v | u = zipWith | v u
+    v ^ u = zipWith ^ v u
+    v + u = zipWith + v u
+    v - u = zipWith - v u
+    v * u = zipWith * v u
+    v / u = zipWith / v u
+    v += u
+    v -= u
+    v *= u
+    v /= u
+
+  swizzles:
+    v.xyzw() = v
+    v.wzyx() = (v.w, v.z, v.y, v.x)
+    etc.
+
+double2 and double4 have the same methods as float4, with double2 having
+API using two elements where float4 uses four (e.g. double2 swizzles are
+v.xy() and v.yx() and such).
+
+The double2 and double4 recip() and rsqrt() -methods are implemented in
+software (1.0 / this, sqrt().recip()), unlike float4 which uses the SSE
+_mm_rcp_ps and _mm_rsqrt_ps -ops.
+
+The double4 swizzles and shuffles are implemented by casting
+the struct to a double pointer and doing indexed reads,
+so they're pretty slow.
+
+*/
